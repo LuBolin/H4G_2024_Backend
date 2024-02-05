@@ -1,4 +1,5 @@
 -- MySQL
+CREATE DATABASE IF NOT EXISTS H4G;
 
 --#region account and auth
 CREATE TABLE IF NOT EXISTS accounts(

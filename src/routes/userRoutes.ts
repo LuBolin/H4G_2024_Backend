@@ -1,8 +1,10 @@
-import express, { query } from 'express'
+import express from 'express'
 import {Request, Response} from 'express';
 import MysqlHelper from '../models/dbHelper';
 import { Connection, ResultSetHeader, RowDataPacket } from 'mysql2'
-import { comparePassword, hashPassword, generateJwt, authenticateJwt } from '../models/hashHelper';
+import { comparePassword, hashPassword, generateJwt, authenticateJwt } from '../models/authHelper';
+import { JwtRequest } from '../Global';
+import { JwtPayload } from 'jsonwebtoken';
 
 const router = express.Router();
 router.use(express.urlencoded({ extended: true }));
@@ -39,7 +41,7 @@ router.post('/signup', (req: Request, res: Response) => {
     const username: string = req.body.username;
     const email: string = req.body.email;
     const password: string = req.body.password;
-    console.log(username, email, password);
+    console.log("New Signup: ", username, email, password);
     const insertAccountQuery: string = "INSERT INTO accounts (username, email) VALUES (?, ?)";
     const insertAccountValues: Array<any> = [username, email];
     conn.query(insertAccountQuery, insertAccountValues, (accErr, accResults, accFields) => {
@@ -70,6 +72,15 @@ router.post('/signup', (req: Request, res: Response) => {
     });
 });
 
+
+router.post('/signincheck', authenticateJwt, (req: Request, res: Response) => {
+    const jwtRequest: JwtRequest = req as JwtRequest;
+    const token: JwtPayload = jwtRequest.token
+    return res.status(200).send({
+        success: true,
+        message: token
+    });
+});
 
 // issue jwt
 router.post('/signin', (req: Request, res: Response) => {
@@ -137,7 +148,6 @@ router.post('/signin', (req: Request, res: Response) => {
 });
 
 router.put('/update', authenticateJwt, (req: Request, res: Response) => {
-    console.log(req.body);
     const userid: number = Number(req.body.userid);
     const accountType: string = req.body.accountType;
     const name: string = req.body.name;
@@ -148,9 +158,6 @@ router.put('/update', authenticateJwt, (req: Request, res: Response) => {
         "UPDATE accounts SET account_type = ?, name = ?, phone = ?, description = ? WHERE id = ?";
     const updateAccountValues: Array<any> = [accountType, name, phone, description, userid];
     conn.query(updateAccountQuery, updateAccountValues, (err, results, fields) => {
-        console.log(err);
-        console.log(results);
-        console.log(fields);
         if (err) {
             return res.status(500).send({
                 success: false,
