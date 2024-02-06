@@ -72,7 +72,7 @@ router.post('/signup', (req: Request, res: Response) => {
     });
 });
 
-
+// utility endpoint to check if jwt is valid
 router.post('/signincheck', authenticateJwt, (req: Request, res: Response) => {
     const jwtRequest: JwtRequest = req as JwtRequest;
     const token: JwtPayload = jwtRequest.token
@@ -82,7 +82,7 @@ router.post('/signincheck', authenticateJwt, (req: Request, res: Response) => {
     });
 });
 
-// issue jwt
+// issues jwt
 router.post('/signin', (req: Request, res: Response) => {
     const username: string = req.body.username;
     const password: string = req.body.password;
@@ -138,7 +138,7 @@ router.post('/signin', (req: Request, res: Response) => {
         });
 
         const token = generateJwt(userId, name, accountType);
-        
+        console.log("Sign in successful with token: ", token, " for user: ", username, " with id: ", userId, " and account type: ", accountType, " and name: ", name);
         return res.status(200).send({
             success: true,
             message: 'Login successful',
@@ -147,6 +147,7 @@ router.post('/signin', (req: Request, res: Response) => {
     });
 });
 
+// update personal information
 router.put('/update', authenticateJwt, (req: Request, res: Response) => {
     const userid: number = Number(req.body.userid);
     const accountType: string = req.body.accountType;
@@ -171,6 +172,75 @@ router.put('/update', authenticateJwt, (req: Request, res: Response) => {
     });
 });
 
+
+// get attendance for specific event
+router.get('/event/:eid/attendance', authenticateJwt, (req: Request, res: Response) => {
+    const jwtRequest: JwtRequest = req as JwtRequest;
+    const token: JwtPayload = jwtRequest.token;
+    const userid: number = token.userid;
+    // const role: string = token.role;
+    const eid: number = Number(req.params.eid);
+
+    // check if enrolled in event
+    const participationQuery = "SELECT 1 FROM event_volunteers WHERE event_id = ? AND volunteer_id = ? LIMIT 1";
+    const participationValues: Array<any> = [eid, userid];
+    conn.query(participationQuery, participationValues, (err, results, fields) => {
+        if (err) {
+            return res.status(500).send({
+                success: false,
+                message: 'Error in checking participation: ' + err,
+            });
+        }
+        results = JSON.parse(JSON.stringify(results)) as RowDataPacket[];
+        if (results.length === 0) {
+            return res.status(403).send({
+                success: false,
+                message: 'You are not authorized to view this event',
+            });
+        }
+    });
+
+    // mysql 8.0+ supports CTE
+    const getAttendanceQuery: string = `
+        WITH RECURSIVE date_series AS (
+            SELECT e.start_time AS date
+            FROM events e
+            WHERE e.id = ?
+            UNION ALL
+            SELECT DATE_ADD(date, INTERVAL 1 DAY)
+            FROM date_series
+            WHERE date < (SELECT end_time FROM events WHERE id = ?)
+        )
+        SELECT ds.date,
+                IF(ea.id IS NULL, 'Absent', 'Present') AS attendance_status
+        FROM date_series ds
+        LEFT JOIN event_attendance ea 
+            ON ds.date = ea.attendance_date 
+            AND ea.volunteer_id = ? 
+            AND ea.event_id = ?
+        ORDER BY ds.date;
+        `;
+    const getAttendanceValues: Array<any> = [eid, eid, userid, eid];
+    conn.query(getAttendanceQuery, getAttendanceValues, (err, results, fields) => {
+        if (err) {
+            return res.status(500).send({
+                success: false,
+                message: 'Error in fetching attendance: ' + err,
+            });
+        }
+        results = JSON.parse(JSON.stringify(results)) as RowDataPacket[];
+        return res.status(200).send({
+            success: true,
+            message: 'Attendance fetched successfully',
+            data: results
+        });
+    });
+});
+
+// redirects to attendance page
+router.get('/event/:eid', authenticateJwt, (req: Request, res: Response) => {
+    res.redirect(`/event/${req.params.eid}/attendance`);
+});
 
 
 export default router;

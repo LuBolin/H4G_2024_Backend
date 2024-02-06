@@ -63,7 +63,10 @@ const authenticateJwt = async (req: Request, res: Response, next: NextFunction) 
     }
 };
 
-const validateAccountType = (userid: number, account_type: string): boolean => {
+const validateAccountType = (userid: number, account_type: string, expected_type: string): boolean => {
+    if(account_type != expected_type) {
+        return false;
+    }
     const checkRoleQuery: string = "SELECT account_type FROM accounts WHERE id = ?";
     const checkRoleValues: Array<any> = [userid];
     conn.query(checkRoleQuery, checkRoleValues, (err, results, fields) => {
@@ -71,7 +74,7 @@ const validateAccountType = (userid: number, account_type: string): boolean => {
             return false;
         }
         results = JSON.parse(JSON.stringify(results)) as RowDataPacket[];
-        if (results[0].account_type != account_type) {
+        if (results[0].account_type != expected_type) {
             return false;
         }
     });

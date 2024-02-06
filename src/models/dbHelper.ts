@@ -1,6 +1,5 @@
 import * as mysql from 'mysql2';
 import dotenv from 'dotenv';
-import { QueryOptions } from 'mysql2';
 dotenv.config(); // Loads .env file contents into process.env by default.
 
 export default class MysqlHelper {
@@ -13,7 +12,6 @@ export default class MysqlHelper {
             user: process.env.DB_USER,
             password: process.env.DB_PSWD,
             database: process.env.DB_NAME,
-            connectionLimit: 10,
             multipleStatements: true
         });
     }
@@ -30,3 +28,4 @@ export default class MysqlHelper {
         return this.connection;
     }
 }
+
