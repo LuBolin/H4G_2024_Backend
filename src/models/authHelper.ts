@@ -26,11 +26,11 @@ const comparePassword = (password: string, hash: string): boolean => {
 
 
 // userid for queries, username for rendering purpose, role for the right data
-const generateJwt = (userid: number, username: string, role: string): string => {
+const generateJwt = (userid: number, name: string, role: string): string => {
     const payload = {
         // "subject" seems to be the convention for the username
         userid: userid,
-        username: username,
+        name: name,
         role: role
     };
     console.log("Payload: ", payload)
