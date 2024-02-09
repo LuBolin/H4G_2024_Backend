@@ -124,25 +124,24 @@ router.post('/signin', (req: Request, res: Response) => {
         var userId: number = -1;
         var accountType: string = "";
         var name: string = "";
-        conn.query(tokenDataQuery, tokenDataValues, (err, results, fields) => {
-            if (err) {
+        conn.query(tokenDataQuery, tokenDataValues, (token_err, token_results, token_fields) => {
+            if (token_err) {
                 return res.status(500).send({
                     success: false,
-                    message: 'Error in fetching token data: ' + err,
+                    message: 'Error in fetching token data: ' + token_err,
                 });
             }
-            results = JSON.parse(JSON.stringify(results)) as RowDataPacket[];
-            userId = (results[0] as RowDataPacket).id;
-            accountType = (results[0] as RowDataPacket).account_type;
-            name = (results[0] as RowDataPacket).name;
-        });
-
-        const token = generateJwt(userId, name, accountType);
-        console.log("Sign in successful with token: ", token, " for user: ", username, " with id: ", userId, " and account type: ", accountType, " and name: ", name);
-        return res.status(200).send({
-            success: true,
-            message: 'Login successful',
-            token: token
+            token_results = JSON.parse(JSON.stringify(token_results)) as RowDataPacket[];
+            userId = (token_results[0] as RowDataPacket).id;
+            accountType = (token_results[0] as RowDataPacket).account_type;
+            name = (token_results[0] as RowDataPacket).name;
+            const token = generateJwt(userId, name, accountType);
+            console.log("Sign in successful with token: ", token, " for user: ", username, " with id: ", userId, " and account type: ", accountType, " and name: ", name);
+            return res.status(200).send({
+                success: true,
+                message: 'Login successful',
+                token: token
+            });
         });
     });
 });

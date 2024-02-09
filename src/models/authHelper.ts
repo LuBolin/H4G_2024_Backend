@@ -33,6 +33,7 @@ const generateJwt = (userid: number, username: string, role: string): string => 
         username: username,
         role: role
     };
+    console.log("Payload: ", payload)
 
     const token: string = jwt.sign(payload, secretKey, { expiresIn: expirationTime });
 
