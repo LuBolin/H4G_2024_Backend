@@ -2,7 +2,7 @@ import express from 'express'
 import {Request, Response} from 'express';
 import MysqlHelper from '../models/dbHelper';
 import { Connection, ResultSetHeader, RowDataPacket } from 'mysql2'
-import { comparePassword, hashPassword, generateJwt, authenticateJwt } from '../models/authHelper';
+import { comparePassword, hashPassword, generateJwt, authenticateJwt, updateJwtMiddleware } from '../models/authHelper';
 import { JwtRequest } from '../Global';
 import { JwtPayload } from 'jsonwebtoken';
 
@@ -12,6 +12,7 @@ router.use(express.json());
 
 const conn: Connection = MysqlHelper.getInstance().getConnection();
 
+router.use(updateJwtMiddleware);
 
 // for testing purpose
 router.get('/:id', (req: Request, res: Response) => {
@@ -33,7 +34,6 @@ router.get('/:id', (req: Request, res: Response) => {
         });
     });
 });
-
 
 // promise, async, await should be used here
 // but i cant wrap my head around it
@@ -148,15 +148,19 @@ router.post('/signin', (req: Request, res: Response) => {
 
 // update personal information
 router.put('/update', authenticateJwt, (req: Request, res: Response) => {
-    const userid: number = Number(req.body.userid);
-    const accountType: string = req.body.accountType;
+    const jwtrequest: JwtRequest = req as JwtRequest;
+    const token: JwtPayload = jwtrequest.token
+    const userid: number = token.userid;
+
     const name: string = req.body.name;
+    const accountType: string = req.body.accountType;
     const phone: string = req.body.phone;
     const description: string = req.body.description || "";
 
     const updateAccountQuery: string = 
         "UPDATE accounts SET account_type = ?, name = ?, phone = ?, description = ? WHERE id = ?";
     const updateAccountValues: Array<any> = [accountType, name, phone, description, userid];
+    
     conn.query(updateAccountQuery, updateAccountValues, (err, results, fields) => {
         if (err) {
             return res.status(500).send({
@@ -164,9 +168,12 @@ router.put('/update', authenticateJwt, (req: Request, res: Response) => {
                 message: 'Error in updating account information: ' + err,
             });
         }
-        return res.status(200).send({
-            success: true,
-            message: 'Account updated successfully',
+        token.exp = -1;
+        updateJwtMiddleware(req, res, () => {
+            return res.status(200).send({
+                success: true,
+                message: 'Account updated successfully',
+            });
         });
     });
 });
