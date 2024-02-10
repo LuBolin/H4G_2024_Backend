@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS passwords(
 CREATE TABLE IF NOT EXISTS events(
     id INT PRIMARY KEY AUTO_INCREMENT,
     npo_id INT NOT NULL,
-    name TEXT NOT NULL,
+    event_name TEXT NOT NULL,
     description TEXT NOT NULL,
     start_time DATETIME NOT NULL,
     end_time DATETIME NOT NULL,
